@@ -38,14 +38,14 @@ NN4 does not understand @import
 </TABLE>
 </DIV>
 
-<DIV id=Content>
+<DIV id="Content">
 <?php
-	include 'dbinc.php';	// Variables for DB connection
-	include 'error.inc';	// Error handler
+	require 'dbinc.php';             // Variables for DB connection
+	require '../logbook.class.php';  // The LogBook class
 
 	// Record the start time of the script
 	$start = microtime();
-	sscanf ($start,"%s %s",&$microseconds,&$seconds);
+	sscanf ($start,"%s %s", $microseconds, $seconds);
 	$start_time = $seconds + $microseconds;
 
 	// This function displays the modes contacted for each band (cell) as an image
@@ -98,6 +98,16 @@ NN4 does not understand @import
 
 	// Start of program
 
+	// instantiate the LogBook object
+	try
+	{
+		$logBook = new LogBook($dbDsn, $dbUser, $dbPassword, $dbOptions, $dbPrefix);
+	}
+	catch(Exception $e)
+	{
+		die ("Error " . $e->getCode() . " : " . $e->getMessage());
+	}
+
 	// Read the callsign to search. Check to see if we need to strip any slashes
 	// from the callsign (magic_quotes_gpc option in php.ini)
 	$callsign = ini_get ('magic_quotes_gpc')
@@ -111,26 +121,8 @@ NN4 does not understand @import
 	echo "<CENTER><H1>Log Search result for $callsign</H1></CENTER>";
 	echo "<P>";
 	
-	// Connect to the database. The variables are stored in the include file db.inc
-	if (! ($connection = @ mysql_connect($hostName,$username,$password)))
-		die ("Could not connect to the database");
-
-	// Connect to the log database. The error handler is defined in the error.inc include file
-	if (!mysql_select_db ($databaseName, $connection))
-		showerror();
-
-	// Query the database for all the DX callsigns available. Select in alphabetical order of the callsign
-	// for display purposes
-	if (! ($result = mysql_query ("	SELECT dxcallsign 
-					FROM dxstation
-					ORDER by dxcallsign",
-			$connection)))
-		showerror();
-
-	// Read each row from the database and store the callsign in the dxcalls array
-	while ($row = @ mysql_fetch_row($result))
-		for ($i=0; $i<mysql_num_fields($result); $i++)
-			$dxcalls [] = $row[$i];
+	// Fetch the list of DX callsigns available
+	$dxcalls = $logBook->getDXCallsigns();
 
 	// Create an array of the bands to be displayed. This is hard coded to make my life easier. It should
 	// really be read from the database and the HTML table dynamically created. Let as a later exercise....
@@ -256,12 +248,12 @@ NN4 does not understand @import
 
 	// Record the end time of the script
 	$end = microtime();
-	sscanf ($end,"%s %s",&$microseconds,&$seconds);
+	sscanf ($end,"%s %s", $microseconds, $seconds);
 	$end_time = $seconds + $microseconds;
 
 	// Calculate elapsed time for the script
 	$elapsed = $end_time - $start_time;
-	sscanf ($elapsed,"%5f", &$elapsed_time);
+	sscanf ($elapsed,"%5f", $elapsed_time);
 
 	// Display summary info
 	

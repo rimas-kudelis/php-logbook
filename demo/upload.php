@@ -1,3 +1,15 @@
+<?php
+	require 'dbinc.php';
+	require '../logbook.class.php';
+	try
+	{
+		$logBook = new LogBook($dbDsn, $dbUser, $dbPassword, $dbOptions, $dbPrefix);
+	}
+	catch(Exception $e)
+	{
+		die ("Error " . $e->getCode() . " : " . $e->getMessage());
+	}
+?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3c.org/TR/1999/REC-html401-19991224/loose.dtd">
 <html>
 <head>
@@ -18,37 +30,12 @@
 <select name="callsign">
 
 <?php
-	include 'dbinc.php';
-	include 'error.inc';
-
-	// Connect to the database
-	if (!($connection = @ mysql_connect ($hostName,
-                                        $username,
-                                        $password)))
-
-	die ("Could not connect to database");
-
-	// Select the radiolog database
-	if (!mysql_select_db ($databaseName, $connection))
-		showerror();
-
-	// Display all the available DX callsigns in order
-	$query = "SELECT dxcallsign FROM dxstation order by id";
-
-	if (!($result = @ mysql_query ($query, $connection)))
-		showerror();
-
-	$i = 0;
+	$callSigns = $logBook->getDXCallsigns();
 
 	// Display each DX callsign in a drop down menu. 
-	while ($row = @ mysql_fetch_array ($result))
+	foreach($callSigns as $callSign)
 	{
-		$i++;
-		if ($i == 1)
-			echo "<option value=" . $i . " selected>" . $row['dxcallsign'] . "\n";
-		else
-			echo "<option value=" . $i . ">" . $row['dxcallsign'] . "\n";
-
+		echo "<option value='{$callSign}'>{$callSign}\n";
 	}
 
 ?>
@@ -66,10 +53,7 @@
 	echo "<H3><BR><BR><BR><BR>Last 10 logs uploaded</H3>\n";
 	
 	// Display the last 10 files uploaded
-	$query = "SELECT * FROM logfiles order by id DESC LIMIT 10";
-
-	if (!($result = @ mysql_query ($query, $connection)))
-		showerror();
+	$lastFiles = $logBook->getImportedFileInfo(10);
 
 	echo "\n<table border=1 width=75% bgcolor=\"lightyellow\">";
 
@@ -80,7 +64,7 @@
 	echo "\n\t<th>Date uploaded</th>";
 	echo "\n</tr>";
 
-	while ($row = @ mysql_fetch_array ($result))
+	foreach ($lastFiles as $row)
 	{
 		echo "\n<tr>" .
 		     "\n\t<td>{$row["filename"]}</td>" .
@@ -91,10 +75,6 @@
 	}
 
 	echo "\n</table>";		
-
-	// Disconnect from the database
-	if (!mysql_close ($connection))
-   	showerror();
 ?>
 
 
