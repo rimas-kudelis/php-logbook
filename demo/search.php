@@ -46,7 +46,7 @@ NN4 does not understand @import
 	// Record the start time of the script
 	$start = microtime();
 	sscanf ($start,"%s %s", $microseconds, $seconds);
-	$start_time = $seconds + $microseconds;
+	$startTime = $seconds + $microseconds;
 
 	// This function displays the modes contacted for each band (cell) as an image
 	function print_cell ($value)
@@ -90,10 +90,10 @@ NN4 does not understand @import
 
 	// This function is used to add up a whole array. It is used to check if any QSOs have been made with a
 	// particular DX station
-	function add_up ($running_total, $current_value)
+	function add_up ($runningTotal, $currentValue)
 	{
-		$running_total += $current_value;
-		return $running_total;
+		$runningTotal += $currentValue;
+		return $runningTotal;
 	}
 
 	// Start of program
@@ -108,11 +108,8 @@ NN4 does not understand @import
 		die ("Error " . $e->getCode() . " : " . $e->getMessage());
 	}
 
-	// Read the callsign to search. Check to see if we need to strip any slashes
-	// from the callsign (magic_quotes_gpc option in php.ini)
-	$callsign = ini_get ('magic_quotes_gpc')
-		    ? stripslashes ($_POST['callsign'])
-		    : $_POST['callsign'];
+	// Read the callsign to search.
+	$callsign = $_POST['callsign'];
 	
 	// Make the callsign upper case
 	$callsign = strtoupper ($callsign);
@@ -135,138 +132,119 @@ NN4 does not understand @import
 			$table[$dxcalls[$i]][$bands[$j]] = 0;
 
 	// Query the database for all the QSOs for the requested callsign
-	if (! ($result = mysql_query ("	SELECT DISTINCT dx.dxcallsign, 
-							q.op_mode, 
-							q.band
-					FROM dxstation dx, qsos q
-					WHERE q.callsign = '$callsign'
-					AND q.fk_dxstn = dx.id
-					ORDER by dx.dxcallsign,q.band DESC",
-			$connection)))
-		showerror();
-
-	// Check the number of QSOs
-	$count = mysql_num_rows ($result);
-
-	if ($count == 0)
-		echo "<P>Sorry no QSOs found for $callsign! Please check the full logs using the <A HREF=\"search.html\">Java log-search</A><P>";
+	if (empty($qsos = $logBook->searchQSOs($callsign)))
+	{
+		echo "<P>Sorry no QSOs found for $callsign!<P>";
+		$count = 0;
+	}
 	else
 	{
+		// Table Headings - bands
+		echo 	"\n<center><table BORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"5\" width=\"70%\">\n<tr>\n" .
+			"\n\t<th>Callsign</th>" .
+			"\n\t<th>160</th>" .
+			"\n\t<th>80</th>" .
+			"\n\t<th>40</th>" .
+			"\n\t<th>30</th>" .
+			"\n\t<th>20</th>" .
+			"\n\t<th>17</th>" .
+			"\n\t<th>15</th>" .
+			"\n\t<th>12</th>" .
+			"\n\t<th>10</th>" .
+			"\n</tr>" .
+			"\n<p>";
 
-	// Table Headings - bands
-	echo 	"\n<center><table BORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"5\" width=\"70%\">\n<tr>\n" .
-		"\n\t<th>Callsign</th>" .
-		"\n\t<th>160</th>" .
-		"\n\t<th>80</th>" .
-		"\n\t<th>40</th>" .
-		"\n\t<th>30</th>" .
-		"\n\t<th>20</th>" .
-		"\n\t<th>17</th>" .
-		"\n\t<th>15</th>" .
-		"\n\t<th>12</th>" .
-		"\n\t<th>10</th>" .
-		"\n</tr>" .
-		"\n<p>";
-
-	// Read each row from the database
-	while ($row = @ mysql_fetch_array($result))
-	{
-		// Add up the number of QSOs on each band
-		switch ($row["op_mode"])
+		foreach ($qsos as $row)
 		{
-			case 'SSB':
-				$table [$row["dxcallsign"]] [$row["band"]] += 1;
-				break;
-
-			case 'CW':
-				$table [$row["dxcallsign"]] [$row["band"]] += 2;
-				break;
-
-			case 'DIG':
-				$table [$row["dxcallsign"]] [$row["band"]] += 4;
-				break;
-
-		}
-	}
-
-	// We have now read all the QSOs made for all the DX stations into a 2D matrix ($table)
-	// Now we go through each row (DX station) and column (band)
-
-	foreach ($table as $k => $v)
-	{
-		// Count the number of QSOs made with this DX station
-		$total = array_reduce ($v, 'add_up');
-
-		// None? Then don't bother displaying the row
-		if ($total == 0)
-			continue;
-
-		echo "\n<tr>";
-		echo "\n\t<td width=\"10%\"><center>$k</center></td>";
-
-		foreach ($v as $k2 => $v2)
-		{
-			switch ($k2)
+			// Add up the number of QSOs on each band
+			switch ($row["op_mode"])
 			{
-				// Display QSOs made on each band
-				case '160':
-					print_cell($v2);
-				break;
-				case '80':
-					print_cell($v2);
-				break;
-				case '40':
-					print_cell($v2);
-				break;
-				case '30':
-					print_cell($v2);
-				break;
-				case '20':
-					print_cell($v2);
-				break;
-				case '17':
-					print_cell($v2);
-				break;
-				case '15':
-					print_cell($v2);
-				break;
-				case '12':
-					print_cell($v2);
-				break;
-				case '10':
-					print_cell($v2);
-				break;
+				case 'SSB':
+					$table [$row["dxcallsign"]] [$row["band"]] += 1;
+					break;
+
+				case 'CW':
+					$table [$row["dxcallsign"]] [$row["band"]] += 2;
+					break;
+
+				case 'DIG':
+					$table [$row["dxcallsign"]] [$row["band"]] += 4;
+					break;
+
 			}
 		}
-		echo "\n</tr>";
-	}
+		$count = count($qsos);
 
-	echo "\n</table></center>";
-	echo "\n\n";
+		// We have now read all the QSOs made for all the DX stations into a 2D matrix ($table)
+		// Now we go through each row (DX station) and column (band)
+
+		foreach ($table as $k => $v)
+		{
+			// Count the number of QSOs made with this DX station
+			$total = array_reduce ($v, 'add_up');
+
+			// None? Then don't bother displaying the row
+			if ($total == 0)
+				continue;
+
+			echo "\n<tr>";
+			echo "\n\t<td width=\"10%\"><center>$k</center></td>";
+
+			foreach ($v as $k2 => $v2)
+			{
+				switch ($k2)
+				{
+					// Display QSOs made on each band
+					case '160':
+						print_cell($v2);
+					break;
+					case '80':
+						print_cell($v2);
+					break;
+					case '40':
+						print_cell($v2);
+					break;
+					case '30':
+						print_cell($v2);
+					break;
+					case '20':
+						print_cell($v2);
+					break;
+					case '17':
+						print_cell($v2);
+					break;
+					case '15':
+						print_cell($v2);
+					break;
+					case '12':
+						print_cell($v2);
+					break;
+					case '10':
+						print_cell($v2);
+					break;
+				}
+			}
+			echo "\n</tr>";
+		}
+
+		echo "\n</table></center>";
+		echo "\n\n";
 	
 	} // End else no QSOs found
 
 	// Record the end time of the script
 	$end = microtime();
 	sscanf ($end,"%s %s", $microseconds, $seconds);
-	$end_time = $seconds + $microseconds;
+	$endTime = $seconds + $microseconds;
 
 	// Calculate elapsed time for the script
-	$elapsed = $end_time - $start_time;
-	sscanf ($elapsed,"%5f", $elapsed_time);
+	$elapsed = $endTime - $startTime;
+	sscanf ($elapsed,"%5f", $elapsedTime);
 
 	// Display summary info
 	
 	// Count the number of QSOs in the database
-	if (! ($result = mysql_query ("	SELECT count(*) 
-					FROM qsos",
-			$connection)))
-		showerror();
-
-	// Read each row from the database and store the callsign in the dxcalls array
-	while ($row = @ mysql_fetch_row($result))
-		for ($i=0; $i<mysql_num_fields($result); $i++)
-			$total = $row[$i];
+	$totalQSOCount = $logBook->getQSOCount();
 			
 	switch ($count)
 	{
@@ -275,7 +253,6 @@ NN4 does not understand @import
 			break;
 			
 		case 0:
-			echo "\n<CENTER><P><P>";
 			break;
 			
 		default:
@@ -283,13 +260,10 @@ NN4 does not understand @import
 			break;
 	}
 	
-	echo "\n<P>There are $total QSOs in the Database<P>";
+	echo "\n<P>There are $totalQSOCount QSOs in the Database<P>";
 
-	echo "\n<P><FONT SIZE=\"-2\">The search took $elapsed_time seconds</FONT></CENTER>";
+	echo "\n<P><FONT SIZE=\"-2\">The search took $elapsedTime seconds</FONT></CENTER>";
 	
-	// Close the database connection
-	if (!mysql_close ($connection))
-		showerror();
 ?>
 
 <BR>

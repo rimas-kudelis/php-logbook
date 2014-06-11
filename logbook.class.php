@@ -11,6 +11,8 @@ class LogBook
 	private $pfx; // database table prefix
 	private $addQSOStatement;
 	private $addImportedFileInfoStatement;
+	private $searchQSOsAllStatement;
+	private $searchQSOsByDXCallsignStatement;	
 
 	public function __construct($dbDsn, $dbUser='', $dbPassword='', $dbOptions=null, $pfx='')
 	{
@@ -86,7 +88,7 @@ class LogBook
 	/**
 	 * Insert QSO into the database
 	 * Parameters:
-	 * $callsign   - contacted station's Callsign
+	 * $callsign   - contacted station's callsign
 	 * $opMode     - QSO mode
 	 * $band       - QSO band
 	 * $dxCallsign - logging operator's callsign 
@@ -115,6 +117,62 @@ class LogBook
 			':band' => $band,
 			':dxCallsign' => $dxCallsign
 			));
+	}
+
+	/**
+	 * Get the list of QSOs by callsigns of participating parties
+	 * Parameters:
+	 * $callsign   - contacted station's callsign
+	 * $dxCallsign - logging operator's callsign
+	 */
+	public function searchQSOs($callsign, $dxCallsign=null)
+	{
+		if (empty($callsign))
+		{
+			return false;
+		}
+		if (empty($dxCallsign))
+		{
+			if (is_null($this->searchQSOsAllStatement))
+			{
+				$query = "SELECT DISTINCT
+						dx.dxcallsign, 
+						q.op_mode, 
+						q.band
+					FROM {$this->pfx}dxstation dx
+						LEFT JOIN {$this->pfx}qsos q ON q.fk_dxstn = dx.id
+					WHERE q.callsign = :callsign
+					ORDER by dx.dxcallsign, q.band DESC";
+				$this->searchQSOsAllStatement = $this->db->prepare($query);
+			}
+
+			$result = $this->searchQSOsAllStatement->execute(array(
+				':callsign' => $callsign,
+				));
+		}
+		else
+		{
+			if (is_null($this->searchQSOsByDXCallsignStatement))
+			{
+				$query = "SELECT DISTINCT
+						dx.dxcallsign, 
+						q.op_mode, 
+						q.band
+					FROM {$this->pfx}dxstation dx
+						LEFT JOIN {$this->pfx}qsos q ON q.fk_dxstn = dx.id
+					WHERE q.callsign = :callsign
+						AND dx.dxcallsign = :dxCallsign
+					ORDER by q.band DESC";
+				$this->searchQSOsByDXCallsignStatement = $this->db->prepare($query);
+			}
+
+			$result = $this->searchQSOsByDXCallsignStatement->execute(array(
+				':callsign' => $callsign,
+				':dxCallsign' => $dxCallsign,
+				));
+		}
+
+		return $result->fetchAll();
 	}
 
 	/**
