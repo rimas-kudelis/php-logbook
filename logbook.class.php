@@ -111,6 +111,8 @@ class LogBook
 			throw new Exception('One of the values passed is missing or empty');
 		}
 
+		$callsign = strtoupper($callsign);
+
 		return $this->addQSOStatement->execute(array(
 			':callsign' => $callsign,
 			':opMode' => $opMode,
@@ -146,9 +148,12 @@ class LogBook
 				$this->searchQSOsAllStatement = $this->db->prepare($query);
 			}
 
-			$result = $this->searchQSOsAllStatement->execute(array(
+			if ($this->searchQSOsAllStatement->execute(array(
 				':callsign' => $callsign,
-				));
+				)))
+			{
+				return $this->searchQSOsAllStatement->fetchAll();
+			}
 		}
 		else
 		{
@@ -166,13 +171,15 @@ class LogBook
 				$this->searchQSOsByDXCallsignStatement = $this->db->prepare($query);
 			}
 
-			$result = $this->searchQSOsByDXCallsignStatement->execute(array(
+			if ($this->searchQSOsByDXCallsignStatement->execute(array(
 				':callsign' => $callsign,
 				':dxCallsign' => $dxCallsign,
-				));
+				)))
+			{
+				return $this->searchQSOsByDXCallsignStatement->fetchAll();
+			}
 		}
-
-		return $result->fetchAll();
+		return false;
 	}
 
 	/**

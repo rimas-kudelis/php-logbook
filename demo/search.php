@@ -108,6 +108,14 @@ NN4 does not understand @import
 		die ("Error " . $e->getCode() . " : " . $e->getMessage());
 	}
 
+	if (isset($_POST['callsign']))
+	{
+		$callsign = strtoupper($_POST['callsign']);
+	}
+	else
+	{
+		$callsign = '';
+	}
 	echo "\n<table border=\"0\" cellpadding=\"10\" cellspacing=\"10\">"
 		. "\n<tr>"
 		. "\n\t<td bgcolor=\"#CCCCFF\">"
@@ -115,7 +123,7 @@ NN4 does not understand @import
 		. "\n\t<p>Search the log book<br>"
 		. "\n\t<form action=\"search.php\" method=\"POST\">"
 		. "\n\t<p>"
-		. "\n\tEnter a callsign: <input type=\"text\" name=\"callsign\">"
+		. "\n\tEnter a callsign: <input type=\"text\" name=\"callsign\" value=\"{$callsign}\">"
 		. "\n\t<p>"
 		. "\n\t<input type=\"submit\" value=\"Search Log!\">"
 		. "\n\t</form>"
@@ -124,7 +132,7 @@ NN4 does not understand @import
 		. "\n</table>";
 
 	// Read the callsign to search.
-	if (isset($_POST['callsign']))
+	if (!empty($callsign))
 	{
 		$callsign = strtoupper($_POST['callsign']);
 
@@ -158,13 +166,14 @@ NN4 does not understand @import
 				"\n\t<th>Callsign</th>";
 			foreach ($bands as $band)
 			{
-				echo "\n\t<th>{$band}</th>";
+				echo "\n\t<th>{$band}m</th>";
 			}
 			echo "\n</tr>" .
 				"\n<p>";
 
 			foreach ($qsos as $row)
 			{
+				$row['band'] = (float)$row['band'];
 				// Add up the number of QSOs on each band
 				switch ($row["op_mode"])
 				{
@@ -249,10 +258,6 @@ NN4 does not understand @import
 	
 ?>
 
-<BR>
-<P>
-<A href="search.html">&lt; Return to Log Search Page</A>
-</P>
 </DIV>
 
 
