@@ -132,7 +132,8 @@ NN4 does not understand @import
 			$table[$dxcalls[$i]][$bands[$j]] = 0;
 
 	// Query the database for all the QSOs for the requested callsign
-	if (empty($qsos = $logBook->searchQSOs($callsign)))
+	$qsos = $logBook->searchQSOs($callsign);
+	if (empty($qsos))
 	{
 		echo "<P>Sorry no QSOs found for $callsign!<P>";
 		$count = 0;
@@ -140,18 +141,13 @@ NN4 does not understand @import
 	else
 	{
 		// Table Headings - bands
-		echo 	"\n<center><table BORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"5\" width=\"70%\">\n<tr>\n" .
-			"\n\t<th>Callsign</th>" .
-			"\n\t<th>160</th>" .
-			"\n\t<th>80</th>" .
-			"\n\t<th>40</th>" .
-			"\n\t<th>30</th>" .
-			"\n\t<th>20</th>" .
-			"\n\t<th>17</th>" .
-			"\n\t<th>15</th>" .
-			"\n\t<th>12</th>" .
-			"\n\t<th>10</th>" .
-			"\n</tr>" .
+		echo "\n<center><table BORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"5\" width=\"70%\">\n<tr>\n" .
+			"\n\t<th>Callsign</th>";
+		foreach ($bands as $band)
+		{
+			echo "\n\t<th>{$band}</th>";
+		}
+		echo "\n</tr>" .
 			"\n<p>";
 
 		foreach ($qsos as $row)
@@ -192,36 +188,10 @@ NN4 does not understand @import
 
 			foreach ($v as $k2 => $v2)
 			{
-				switch ($k2)
+				// Display QSOs made on each band
+				if(in_array($k2, $bands))
 				{
-					// Display QSOs made on each band
-					case '160':
-						print_cell($v2);
-					break;
-					case '80':
-						print_cell($v2);
-					break;
-					case '40':
-						print_cell($v2);
-					break;
-					case '30':
-						print_cell($v2);
-					break;
-					case '20':
-						print_cell($v2);
-					break;
-					case '17':
-						print_cell($v2);
-					break;
-					case '15':
-						print_cell($v2);
-					break;
-					case '12':
-						print_cell($v2);
-					break;
-					case '10':
-						print_cell($v2);
-					break;
+					print_cell($v2);
 				}
 			}
 			echo "\n</tr>";
